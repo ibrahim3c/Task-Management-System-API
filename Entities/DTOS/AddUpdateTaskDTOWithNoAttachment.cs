@@ -1,12 +1,10 @@
-﻿using Entities.Models;
+﻿using Microsoft.AspNetCore.Http;
 using static Core.Constants.GeneralConsts;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
-using Microsoft.AspNetCore.Http;
 
 namespace Core.DTOS
 {
-    public class AddUpdateTaskDTO
+    public class AddUpdateTaskDTOWithNoAttachment
     {
         public int ProjectTaskId { get; set; } = default!;
         [MaxLength(100)]
@@ -21,13 +19,5 @@ namespace Core.DTOS
         [DataType(DataType.Date)]
         public DateTime CreatedDate { get; set; } = DateTime.Now;
 
-        public int? AttachmentID {  get; set; } = default!;
-        [Required]
-        [MaxLength(200)]
-        public string FileName { get; set; } = default!;
-        [Required]
-
-        public IFormFile File { get; set; } = default!;
-
-     }
+    }
 }

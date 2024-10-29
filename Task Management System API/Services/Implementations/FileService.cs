@@ -25,7 +25,13 @@ namespace MyShop.Services.Implementations
             }
         }
 
-
+        public async Task DeleteAllFilesAsync(List<string> FilePaths)
+        {
+            foreach (string FilePath in FilePaths)
+            {
+                await DeleteFileAsync(FilePath);
+            }
+        }
 
 
         public async Task<string> UploadFileAsync(IFormFile file, string folder)

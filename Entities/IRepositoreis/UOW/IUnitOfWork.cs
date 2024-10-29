@@ -5,6 +5,7 @@
         IProjectRepository ProjectRepository { get; }
 
         ITaskRepository TaskRepository { get; }
+        ITaskAttachmentRepository TaskAttachmentRepository { get; }
 
         int Complete();
     }

@@ -3,6 +3,8 @@ using Core.DTOS;
 using Core.IRepositoreis.UOW;
 using Core.Services.Interfaces;
 using Entities.Models;
+using MyShop.Services.Interfaces;
+using System.Threading.Tasks;
 
 namespace Core.Services.Implementations
 {
@@ -10,11 +12,15 @@ namespace Core.Services.Implementations
     {
         private readonly IUnitOfWork unitOfWork;
         private readonly IMapper mapper;
+        private readonly ITaskService taskService;
+        private readonly IFileService fileService;
 
-        public ProjectService(IUnitOfWork unitOfWork,IMapper mapper)
+        public ProjectService(IUnitOfWork unitOfWork,IMapper mapper ,IFileService fileService,ITaskService taskService)
         {
             this.unitOfWork = unitOfWork;
             this.mapper = mapper;
+            this.fileService = fileService;
+            this.taskService = taskService;
         }
         public async Task<ResultDTO<GetProjectDTO>> AddProjectAsync(AddUpdateProjectDTO projectDTO)
         {
@@ -44,9 +50,17 @@ namespace Core.Services.Implementations
 
         }
 
+
         public async Task<ResultDTO<GetProjectDTO>> DeleteProjectAsync(int projectID)
         {
-           var existingProject= await unitOfWork.ProjectRepository.GetByIdAsync(projectID);
+           var existingProject= (await unitOfWork.ProjectRepository.FindAsync(p => p.ProjectId == projectID, ["Tasks.Attachments"]));
+            var projectTasksAttachments = existingProject.Tasks
+                                                 .SelectMany(task => task.Attachments)
+                                                 .Where(attachment => attachment.FilePath != null) // Ensure FilePath is not null
+                                                 .Select(attachment => attachment.FilePath)
+                                                 .ToList();
+
+
             if (existingProject is null)
                 return new ResultDTO<GetProjectDTO>
                 {
@@ -70,6 +84,9 @@ namespace Core.Services.Implementations
 
             }
 
+            // delete all files that related to this project
+            await fileService.DeleteAllFilesAsync(projectTasksAttachments);
+
             return new ResultDTO<GetProjectDTO>
             {
                 Success = true,
@@ -83,6 +100,33 @@ namespace Core.Services.Implementations
         public async Task<IEnumerable<GetProjectDTO>> GetAllProjectAsync()
         {
             return mapper.Map<IEnumerable<GetProjectDTO>>(await unitOfWork.ProjectRepository.GetAllAsync()) ;
+        }
+        public async Task<ResultDTO<IEnumerable<GetAttachmentDTO>>> GetProjectAttachmentsAsync(int projectID)
+        {
+            var existingProject = await unitOfWork.ProjectRepository.FindAsync(p => p.ProjectId == projectID, ["Tasks.Attachments"]);
+
+            var attachments = new List<GetAttachmentDTO>();
+            if(existingProject == null)
+                return ResultDTO<IEnumerable<GetAttachmentDTO>>.Failure(["No Project Found"]);
+            var projectTasks = existingProject.Tasks;
+            if (projectTasks == null)
+                return ResultDTO<IEnumerable<GetAttachmentDTO>>.Failure(["No Tasks Found"]);
+
+            foreach (var task in projectTasks) {
+
+                var result = await taskService.GetAllAttachmentsOfTaskAsync(task.ProjectTaskId);
+                if (result.Success)
+                    attachments.AddRange(result.Data);
+
+            }
+
+            if (!attachments.Any())
+                return ResultDTO<IEnumerable<GetAttachmentDTO>>.Failure(["No Attachments"]);
+
+            return ResultDTO<IEnumerable<GetAttachmentDTO>>.SuccessFully(["Data retrieved successfully"],Data: attachments);
+
+
+
         }
 
         public async Task<GetProjectDTO>GetProjectByIdAsync(int projectId)

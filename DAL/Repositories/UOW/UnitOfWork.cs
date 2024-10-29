@@ -11,11 +11,13 @@ namespace DAL.Repositories.UOW
         public IProjectRepository ProjectRepository {  get; private set; }
 
         public ITaskRepository TaskRepository { get;private set; }
+        public ITaskAttachmentRepository TaskAttachmentRepository { get; private set; }
         public UnitOfWork(AppDbContext context)
         {
             this.context = context;
             ProjectRepository =new ProjectRepository(context);
             TaskRepository =new TaskRepository(context);
+            TaskAttachmentRepository =new TaskAttachmentRepository(context);
         }
 
 

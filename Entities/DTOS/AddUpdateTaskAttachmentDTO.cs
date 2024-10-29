@@ -6,7 +6,7 @@ using MyShop.Web.Attributes;
 
 namespace Core.DTOS
 {
-    public class AddUpdateTaskAttachments
+    public class AddUpdateTaskAttachmentDTO
     {
         public int AttachmentId { get; set; }
 
@@ -19,6 +19,8 @@ namespace Core.DTOS
         MaxFileSize(FileSettings.MaxFileSizeInMB)]
         [Display(Name = "Image")]
         public IFormFile File { get; set; } = default!;
+        public string? FilePath { get; set; } = default!;
+
         public int ProjectTaskId { get; set; }
 
     }

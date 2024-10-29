@@ -10,5 +10,6 @@ namespace Core.Services.Interfaces
         Task<ResultDTO<GetProjectDTO>> AddProjectAsync(AddUpdateProjectDTO projectDTO);
         Task<ResultDTO<GetProjectDTO>> UpdateProjectAsync(int id, AddUpdateProjectDTO projectDTO);
         Task<ResultDTO<GetProjectDTO>> DeleteProjectAsync(int projectID);
+        Task<ResultDTO<IEnumerable<GetAttachmentDTO>>> GetProjectAttachmentsAsync(int projectID);
     }
 }

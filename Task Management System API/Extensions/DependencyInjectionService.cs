@@ -2,6 +2,8 @@
 using Core.Services.Implementations;
 using Core.Services.Interfaces;
 using DAL.Repositories.UOW;
+using MyShop.Services.Implementations;
+using MyShop.Services.Interfaces;
 
 namespace Task_Management_System_API.Extensions
 {
@@ -10,9 +12,10 @@ namespace Task_Management_System_API.Extensions
         public static IServiceCollection AddDependencyInjectionService( this IServiceCollection services) {
 
             // Repository pattern with unit of work
-            services.AddTransient<IUnitOfWork, UnitOfWork>()
-                .AddTransient<IProjectService,ProjectService>()
-                .AddTransient<ITaskService, TaskService>()
+            services.AddScoped<IUnitOfWork, UnitOfWork>()
+                .AddScoped<IProjectService,ProjectService>()
+                .AddScoped<ITaskService, TaskService>()
+                .AddScoped<IFileService, FileService>()
                 ;
 
            return services;

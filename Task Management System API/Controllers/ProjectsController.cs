@@ -25,6 +25,15 @@ namespace Task_Management_System_API.Controllers
             return Ok(await projectService.GetAllProjectAsync());
         }
 
+        [HttpGet("GetAllProjectAttachments/{id:int}")]
+        public async Task<ActionResult<IEnumerable<GetProjectDTO>>> GetAllProjectAttachmetsAsync(int id)
+        {
+           var result=await projectService.GetProjectAttachmentsAsync(id);
+            if(result.Success) 
+                return Ok(result);
+            return BadRequest(result.Data);
+        }
+
         [HttpGet("{id:int}",Name ="GetProject")]
         public async Task<ActionResult<GetProjectDTO>> GetProjectByIdAsync(int id)
         {
