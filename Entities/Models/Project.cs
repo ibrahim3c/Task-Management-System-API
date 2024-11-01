@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Core.Models;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Entities.Models
 {
@@ -17,7 +19,10 @@ namespace Entities.Models
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public IEnumerable<ProjectTask> Tasks { get; set; }
 
-       // user
+        // user
+        [ForeignKey(nameof(AppUser))]
+       public string UserId { get; set; }
+       public AppUser AppUser { get; set; }
 
     }
 }

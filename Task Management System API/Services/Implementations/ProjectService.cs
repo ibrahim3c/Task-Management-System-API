@@ -150,6 +150,7 @@ namespace Core.Services.Implementations
             existingProject.Name = projectDTO.Name;
             existingProject.Description = projectDTO.Description;
             existingProject.CreatedDate = projectDTO.CreatedDate;
+            existingProject.UserId = projectDTO.UserId;
 
             unitOfWork.ProjectRepository.Update(existingProject);
             var result = unitOfWork.Complete();

@@ -1,14 +1,15 @@
 ﻿using Core.DTOS;
 using Core.Services.Interfaces;
-using Entities.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 using static Core.Constants.GeneralConsts;
 
 namespace Task_Management_System_API.Controllers
 {
     [Route("api/[Controller]")]
     [ApiController]
+    //[Authorize(Roles = Roles.UserRole)]
+    [Authorize]
     public class TasksController : ControllerBase
     {
         private readonly ITaskService taskService;

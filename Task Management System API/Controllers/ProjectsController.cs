@@ -1,15 +1,16 @@
 ﻿using Core.DTOS;
-using Core.IRepositoreis.UOW;
-using Core.Services.Implementations;
 using Core.Services.Interfaces;
 using Entities.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Abstractions;
+using System.Security.Claims;
 
 namespace Task_Management_System_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    //[Authorize(Roles=Roles.AdminRole)]
+    [Authorize]
     public class ProjectsController : ControllerBase
     {
         private readonly IProjectService projectService;
@@ -31,7 +32,7 @@ namespace Task_Management_System_API.Controllers
            var result=await projectService.GetProjectAttachmentsAsync(id);
             if(result.Success) 
                 return Ok(result);
-            return BadRequest(result.Data);
+            return BadRequest(result.Messages);
         }
 
         [HttpGet("{id:int}",Name ="GetProject")]
@@ -54,19 +55,24 @@ namespace Task_Management_System_API.Controllers
             }
             else
             {
-                return BadRequest(ProjectResult);
+                return BadRequest(ProjectResult.Messages);
             }
         }
+
+
 
         [HttpPost]
         public async Task<ActionResult<ResultDTO<Project>>>AddProjectAsync([FromBody]AddUpdateProjectDTO projectDTO)
         {
             if(!ModelState.IsValid) 
                 return BadRequest();
+            // Get user ID from claims
+            projectDTO.UserId = User.Claims
+                .FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
-          var result=await projectService.AddProjectAsync(projectDTO);
+            var result =await projectService.AddProjectAsync(projectDTO);
           if(!result.Success) 
-                return BadRequest(result);
+                return BadRequest(result.Messages);
 
             //return CreatedAtAction(nameof(GetProjectByIdAsync), new { id = result.Data.ProjectId }, result);
             //var url = Url.Action(nameof(GetProjectByIdAsync), new { id = result.Data.ProjectId });
@@ -85,7 +91,7 @@ namespace Task_Management_System_API.Controllers
 
             if (!result.Success)
             {
-                return BadRequest(result);
+                return BadRequest(result.Messages);
             }
             return Ok(result);
 

@@ -1,9 +1,12 @@
-﻿using Entities.Models;
+﻿using Core.Models;
+using Entities.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace DAL.Data
 {
-    public class AppDbContext:DbContext
+    public class AppDbContext:IdentityDbContext<AppUser,AppRole,string>
     {
         public DbSet<Project> Projects { get; set; }
 
@@ -16,6 +19,7 @@ namespace DAL.Data
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<ProjectTask>()
                 .HasOne(p => p.Project)
                 .WithMany(t => t.Tasks);
@@ -26,7 +30,17 @@ namespace DAL.Data
 
             modelBuilder.Entity<TaskAttachment>().HasKey(a => a.AttachmentId);
 
-            base.OnModelCreating(modelBuilder);
+
+            // Rename Identity tables
+            modelBuilder.Entity<AppUser>().ToTable("Users");
+            modelBuilder.Entity<AppRole>().ToTable("Roles");
+            modelBuilder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
+            modelBuilder.Entity<IdentityUserClaim<string>>().ToTable("UserClaims");
+            modelBuilder.Entity<IdentityUserLogin<string>>().ToTable("UserLogins");
+            modelBuilder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
+            modelBuilder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
+
+
 
             
         }
