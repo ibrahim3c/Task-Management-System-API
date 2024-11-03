@@ -1,13 +1,16 @@
 ﻿using AutoMapper;
 using Core.Constants;
 using Core.DTOS;
+using Core.IRepositoreis.UOW;
 using Core.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Task_Management_System_API.Helpers;
 using Task_Management_System_API.Services.Interfaces;
@@ -20,19 +23,22 @@ namespace Task_Management_System_API.Services.Implementations
         private readonly RoleManager<AppRole> roleManager;
         private readonly IMapper mapper;
         private readonly IOptionsMonitor<JWT> JWTConfigs;
+        private readonly IUnitOfWork unitOfWork;
 
         public AuthService(UserManager<AppUser> userManager,
             RoleManager<AppRole> roleManager,
             IMapper mapper,
-            IOptionsMonitor<JWT> JWTConfigs)
+            IOptionsMonitor<JWT> JWTConfigs,
+            IUnitOfWork unitOfWork)
         {
             this.userManager = userManager;
             this.roleManager = roleManager;
             this.mapper = mapper;
             this.JWTConfigs = JWTConfigs;
+            this.unitOfWork = unitOfWork;
         }
 
-
+        // JWT Token
         public async Task<AuthResultDTO> RegisterAsync(UserRegisterDTO userRegisterDTO)
         {
 
@@ -135,6 +141,83 @@ namespace Task_Management_System_API.Services.Implementations
 
 
           
+        }
+
+
+        // JWT refreshToken
+        private RefreshToken GenereteRefreshToken()
+        {
+            var randomNum = new byte[32];
+            using var generator = new RNGCryptoServiceProvider();
+            generator.GetBytes(randomNum);
+
+            return new RefreshToken
+            {
+                ExpiresOn = DateTime.UtcNow.AddDays(15),
+                Token = Convert.ToBase64String(randomNum),
+                CreatedOn= DateTime.UtcNow
+            };
+        }
+
+        public async Task<AuthResultDTOForRefresh> LoginWithRefreshTokenAsync(UserLoginDTO UserDTO)
+        {
+            //var user = await userManager.FindByEmailAsync(UserDTO.Email);
+
+            // to include the RefreshTokens 
+            var user = await userManager.Users
+                                    .Include(u => u.RefreshTokens)
+                                    .FirstOrDefaultAsync(u => u.Email == UserDTO.Email);
+            if (user == null)
+                return new AuthResultDTOForRefresh
+                {
+                    Success = false,
+                    Messages = new List<string> { "Email or Password is incorrect" }
+                };
+
+            var result = await userManager.CheckPasswordAsync(user, UserDTO.Password);
+            if (!result)
+                return new AuthResultDTOForRefresh
+                {
+                    Success = false,
+                    Messages = new List<string> { "Email or Password is incorrect" }
+                };
+
+            var token = await GenerateJwtTokenAsync(user);
+
+           
+
+            var authResult= new AuthResultDTOForRefresh()
+            {
+                Success = true,
+                Token = new JwtSecurityTokenHandler().WriteToken(token),
+            };
+
+            // check if user has already active refresh token 
+            // so no need to give him new refresh token
+            if (user.RefreshTokens.Any(r => r.IsActive))
+            {
+                // TODO: check this 
+                var UserRefreshToken = user.RefreshTokens.FirstOrDefault(r => r.IsActive);
+                authResult.RefreshToken = UserRefreshToken.Token;
+                authResult.RefreshTokenExpiresOn = UserRefreshToken.ExpiresOn;
+            }
+
+            // if he does not
+            // generate new refreshToken
+            else
+            {
+                var refreshToken = GenereteRefreshToken();
+                authResult.RefreshToken = refreshToken.Token;
+                authResult.RefreshTokenExpiresOn = refreshToken.ExpiresOn;
+
+                // then save it in db
+                user.RefreshTokens.Add(refreshToken);
+                await userManager.UpdateAsync(user);
+            }
+
+            return authResult;
+
+
         }
 
 

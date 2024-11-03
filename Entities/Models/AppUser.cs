@@ -9,5 +9,6 @@ namespace Core.Models
         [MaxLength(250)]
         public string Address { get; set; } = default!;
         public IEnumerable<Project> Projects { get; set; }
+        public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     }
 }

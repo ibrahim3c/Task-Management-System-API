@@ -38,5 +38,32 @@ namespace Task_Management_System_API.Controllers
             return Ok(result);
 
         }
+
+
+        [HttpPost("LoginWithRefreshToken")]
+        public async Task<ActionResult<AuthResultDTO>> LoginWithRefreshTokenAsync(UserLoginDTO userDTO)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var result = await authService.LoginWithRefreshTokenAsync(userDTO);
+            if (!result.Success)
+                return BadRequest(result.Messages);
+
+            //set refresh token in response cookie
+            setRefreshTokenInCookie(result.RefreshToken, result.RefreshTokenExpiresOn);
+            return Ok(result);
+
+        }
+
+        private void setRefreshTokenInCookie(string refreshToken, DateTime refreshTokenExpiresOn)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = refreshTokenExpiresOn.ToLocalTime()
+            };
+
+            HttpContext.Response.Cookies.Append("RefereshToken",refreshToken, cookieOptions);
+        }
     }
 }

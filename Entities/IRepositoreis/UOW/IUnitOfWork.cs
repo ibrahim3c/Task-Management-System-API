@@ -1,4 +1,6 @@
-﻿namespace Core.IRepositoreis.UOW
+﻿using Core.Models;
+
+namespace Core.IRepositoreis.UOW
 {
     public interface IUnitOfWork:IDisposable
     {
@@ -6,6 +8,7 @@
 
         ITaskRepository TaskRepository { get; }
         ITaskAttachmentRepository TaskAttachmentRepository { get; }
+        IBaseRepository<RefreshToken> RefreshTokenRepository { get; }
 
         int Complete();
     }

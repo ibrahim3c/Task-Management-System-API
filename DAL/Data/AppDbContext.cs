@@ -13,6 +13,10 @@ namespace DAL.Data
         public DbSet<ProjectTask> Tasks { get; set; }
 
         public DbSet<TaskAttachment> TaskAttachments { get; set; }
+
+        // if u want to add this property u need add PK for RefreshToken Table
+        //public DbSet<RefreshToken> RefreshTokens { get; set; }
+
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
         {
             

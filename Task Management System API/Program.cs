@@ -3,7 +3,6 @@ using Core.Models;
 using DAL.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Task_Management_System_API.Extensions;
 using Task_Management_System_API.Helpers;
 

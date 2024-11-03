@@ -35,7 +35,10 @@ namespace Task_Management_System_API.Extensions
                     ValidateAudience = true,
                     ValidIssuer = configuration["JWT:Issuer"],
                     ValidAudience = configuration["JWT:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:SecretKey"]))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWT:SecretKey"])),
+
+                    // if u want when the token expire he does not give me مهله بعض الوقت 
+                    ClockSkew = TimeSpan.Zero
 
                 };
             }
