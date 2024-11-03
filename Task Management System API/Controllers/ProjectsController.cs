@@ -1,4 +1,5 @@
-﻿using Core.DTOS;
+﻿using Core.Constants;
+using Core.DTOS;
 using Core.Services.Interfaces;
 using Entities.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -9,8 +10,7 @@ namespace Task_Management_System_API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize(Roles=Roles.AdminRole)]
-    [Authorize]
+    [Authorize(Roles = Roles.AdminRole + "," + Roles.UserRole)]
     public class ProjectsController : ControllerBase
     {
         private readonly IProjectService projectService;
@@ -67,8 +67,8 @@ namespace Task_Management_System_API.Controllers
             if(!ModelState.IsValid) 
                 return BadRequest();
             // Get user ID from claims
-            projectDTO.UserId = User.Claims
-                .FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+            //projectDTO.UserId = User.Claims
+            //    .FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
             var result =await projectService.AddProjectAsync(projectDTO);
           if(!result.Success) 

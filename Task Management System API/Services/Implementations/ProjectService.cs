@@ -4,7 +4,7 @@ using Core.IRepositoreis.UOW;
 using Core.Services.Interfaces;
 using Entities.Models;
 using MyShop.Services.Interfaces;
-using System.Threading.Tasks;
+using Task_Management_System_API.Services.Interfaces;
 
 namespace Core.Services.Implementations
 {
@@ -15,7 +15,11 @@ namespace Core.Services.Implementations
         private readonly ITaskService taskService;
         private readonly IFileService fileService;
 
-        public ProjectService(IUnitOfWork unitOfWork,IMapper mapper ,IFileService fileService,ITaskService taskService)
+        public ProjectService(IUnitOfWork unitOfWork,
+            IMapper mapper ,
+            IFileService fileService
+            ,ITaskService taskService
+            )
         {
             this.unitOfWork = unitOfWork;
             this.mapper = mapper;
@@ -135,6 +139,8 @@ namespace Core.Services.Implementations
                 .FindAsync(p => p.ProjectId == projectId, new string[] { "Tasks" })); // Use the correct navigation property name here
         }
 
+     
+
 
         public async Task<ResultDTO<GetProjectDTO>> UpdateProjectAsync(int id,AddUpdateProjectDTO projectDTO)
         {
@@ -172,6 +178,8 @@ namespace Core.Services.Implementations
 
             
         }
+
+
 
        
     }

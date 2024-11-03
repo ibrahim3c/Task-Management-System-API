@@ -27,18 +27,20 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 //dependency Injection
 builder.Services.AddDependencyInjectionService();
 
-//// cors policy
-//builder.Services.AddCorsService();
+// cors policy
+builder.Services.AddCorsService();
 
-//// automapper
-//builder.Services.AddAutoMapperService();
+// automapper
+builder.Services.AddAutoMapperService();
 
-//// JWTconfiguration
-//builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT"));
+// identity ===> i spend one day to find out that you are the problem => it should be above JWTConfigs :(
+builder.Services.AddIdentity<AppUser, AppRole>().AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();
+
+// JWTconfiguration
+builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT"));
 builder.Services.AddJWTConfigurationService(builder.Configuration);
 
-// identity
-builder.Services.AddIdentity<AppUser, AppRole>().AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();
+
 
 #endregion
 

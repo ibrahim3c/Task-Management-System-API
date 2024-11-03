@@ -19,6 +19,8 @@ namespace Task_Management_System_API.Extensions
                 .AddScoped<ITaskService, TaskService>()
                 .AddScoped<IFileService, FileService>()
                 .AddScoped<IAuthService, AuthService>()
+                .AddScoped<IUserService, UserService>()
+                .AddScoped<IRolesService, RoleService>()
                 ;
 
            return services;

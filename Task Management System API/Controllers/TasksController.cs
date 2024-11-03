@@ -1,4 +1,5 @@
-﻿using Core.DTOS;
+﻿using Core.Constants;
+using Core.DTOS;
 using Core.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +9,7 @@ namespace Task_Management_System_API.Controllers
 {
     [Route("api/[Controller]")]
     [ApiController]
-    //[Authorize(Roles = Roles.UserRole)]
-    [Authorize]
+    [Authorize(Roles = Roles.AdminRole + "," + Roles.UserRole)]
     public class TasksController : ControllerBase
     {
         private readonly ITaskService taskService;

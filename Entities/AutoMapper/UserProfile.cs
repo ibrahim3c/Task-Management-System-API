@@ -17,6 +17,12 @@ namespace Core.AutoMapper
                                                 .ForMember(des => des.Email, opt => opt.MapFrom(src => src.Email))
                                                  .ForMember(des=>des.Address,opt=>opt.MapFrom(src=>src.Address))
                                                  ;
+
+            CreateMap<AppUser, GetUserDTO>().ForMember(des => des.UserName, opt => opt.MapFrom(src => src.UserName))
+                                              .ForMember(des => des.Email, opt => opt.MapFrom(src => src.Email))
+                                              .ForMember(des => des.PhoneNumber, opt => opt.MapFrom(src => src.PhoneNumber))
+                                              .ForMember(des => des.UserId, opt => opt.MapFrom(src => src.Id))
+                                               .ForMember(des => des.Address, opt => opt.MapFrom(src => src.Address));
         }
     }
 }
