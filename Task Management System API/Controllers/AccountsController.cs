@@ -1,4 +1,5 @@
-﻿using Core.DTOS;
+﻿using Core.Constants;
+using Core.DTOS;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Task_Management_System_API.Services.Interfaces;
@@ -40,6 +41,22 @@ namespace Task_Management_System_API.Controllers
         }
 
 
+        [HttpPost("RegisterWithRefreshToken")]
+        public async Task<ActionResult<AuthResultDTO>> RegisterWithRefreshTokenAsync(UserRegisterDTO userDTO)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var result = await authService.RegisterWithRefreshTokenAsync(userDTO);
+            if (!result.Success)
+                return BadRequest(result.Messages);
+
+            //set refresh token in response cookie
+            setRefreshTokenInCookie(result.RefreshToken, result.RefreshTokenExpiresOn);
+            return Ok(result);
+
+        }
+
+
         [HttpPost("LoginWithRefreshToken")]
         public async Task<ActionResult<AuthResultDTO>> LoginWithRefreshTokenAsync(UserLoginDTO userDTO)
         {
@@ -55,6 +72,31 @@ namespace Task_Management_System_API.Controllers
 
         }
 
+        [HttpGet("RefreshToken")]
+        public async Task<IActionResult> RefershTokenAsync()
+        {
+            var refreshToken = HttpContext.Request.Cookies[GeneralConsts.RefreshTokenKey];
+
+            var result=await authService.RefreshTokenAsync(refreshToken);
+            if (!result.Success)
+                return BadRequest(result.Messages);
+
+            // set new refreshToken in response cookie
+            setRefreshTokenInCookie(result.RefreshToken, result.RefreshTokenExpiresOn);
+
+            return Ok(result);
+        }
+
+        [HttpGet("RevokeToken")]
+        public async Task<IActionResult>RevokeTokenAsync([FromBody]string? refreshToken)
+        {
+            string token = refreshToken ?? HttpContext.Request.Cookies[GeneralConsts.RefreshTokenKey];
+           var result=await authService.RevokeTokenAsync(token);
+            if (result)
+                return Ok();
+            return BadRequest("InValid Token");
+        }
+
         private void setRefreshTokenInCookie(string refreshToken, DateTime refreshTokenExpiresOn)
         {
             var cookieOptions = new CookieOptions
@@ -63,7 +105,7 @@ namespace Task_Management_System_API.Controllers
                 Expires = refreshTokenExpiresOn.ToLocalTime()
             };
 
-            HttpContext.Response.Cookies.Append("RefereshToken",refreshToken, cookieOptions);
+            HttpContext.Response.Cookies.Append(GeneralConsts.RefreshTokenKey, refreshToken, cookieOptions);
         }
     }
 }

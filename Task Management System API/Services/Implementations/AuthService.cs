@@ -159,6 +159,55 @@ namespace Task_Management_System_API.Services.Implementations
             };
         }
 
+        public async Task<AuthResultDTOForRefresh> RegisterWithRefreshTokenAsync(UserRegisterDTO userRegisterDTO)
+        {
+
+            if (await userManager.FindByEmailAsync(userRegisterDTO.Email) is not null)
+                return new AuthResultDTOForRefresh()
+                {
+                    Success = false,
+                    Messages = new List<string> { "Email is already Registered!" }
+                };
+            if (await userManager.FindByNameAsync(userRegisterDTO.UserName) is not null)
+                return new AuthResultDTOForRefresh()
+                {
+                    Success = false,
+                    Messages = new List<string> { "User Name is already Registered!" }
+                };
+
+            // create user
+            var user = mapper.Map<AppUser>(userRegisterDTO);
+            var result = await userManager.CreateAsync(user, userRegisterDTO.Password);
+            if (!result.Succeeded)
+                return new AuthResultDTOForRefresh()
+                {
+                    Success = false,
+                    Messages = result.Errors.Select(e => e.Description).ToList()
+                };
+
+            // add role to user
+            await userManager.AddToRoleAsync(user, Roles.UserRole);
+
+
+            // generate token
+            var token = await GenerateJwtTokenAsync(user);
+            // generate refreshToken
+            var refreshToken = GenereteRefreshToken();
+          
+
+            // then save it in db
+            user.RefreshTokens.Add(refreshToken);
+            await userManager.UpdateAsync(user);
+            return new AuthResultDTOForRefresh()
+            {
+                Success = true,
+                RefreshTokenExpiresOn = refreshToken.ExpiresOn,
+                Token = new JwtSecurityTokenHandler().WriteToken(token),
+                RefreshToken=refreshToken.Token
+            };
+
+        }
+
         public async Task<AuthResultDTOForRefresh> LoginWithRefreshTokenAsync(UserLoginDTO UserDTO)
         {
             //var user = await userManager.FindByEmailAsync(UserDTO.Email);
@@ -217,6 +266,77 @@ namespace Task_Management_System_API.Services.Implementations
 
             return authResult;
 
+
+        }
+
+        public async Task<AuthResultDTOForRefresh> RefreshTokenAsync(string refreshToken)
+        {
+            // ensure there is user has this refresh token
+            var user = await userManager.Users.SingleOrDefaultAsync(u => u.RefreshTokens.Any(r => r.Token == refreshToken));
+            if (user == null)
+            {
+                return new AuthResultDTOForRefresh
+                {
+                    // u can don't add false=> cuz it's the default value 
+                    Success = false,
+                    Messages = ["InValid Token"]
+                };
+            }
+            // ensure this token is active
+            var oldRefreshToken = user.RefreshTokens.SingleOrDefault(t => t.Token == refreshToken);
+            if (!oldRefreshToken.IsActive)
+                return new AuthResultDTOForRefresh
+                {
+                    Success = false,
+                    Messages = ["InValid Token"]
+                };
+            // if all things well
+            //revoke old refresh token
+            oldRefreshToken.RevokedOn = DateTime.UtcNow;
+            
+            // generate new refresh token and add it to db
+            var newRefreshToken=GenereteRefreshToken();
+            user.RefreshTokens.Add(newRefreshToken);
+            await userManager.UpdateAsync(user);
+
+            // generate new JWT Token
+            var jwtToken=await GenerateJwtTokenAsync(user);
+
+            return new AuthResultDTOForRefresh
+            {
+                Success = true,
+                Messages = ["Refresh Token Successfully"],
+                RefreshToken = newRefreshToken.Token,
+                RefreshTokenExpiresOn = newRefreshToken.ExpiresOn,
+                Token = new JwtSecurityTokenHandler().WriteToken(jwtToken)
+            };
+
+
+
+
+        }
+
+        public async Task<bool> RevokeTokenAsync(string refreshToken)
+        {
+            if (string.IsNullOrEmpty(refreshToken))
+                return false;
+
+            var user = await userManager.Users.SingleOrDefaultAsync(u => u.RefreshTokens.Any(r => r.Token == refreshToken));
+            if (user == null)
+                return false;
+
+            var oldRefreshToken = user.RefreshTokens.SingleOrDefault(t => t.Token == refreshToken);
+            if (!oldRefreshToken.IsActive)
+                return false;
+      
+
+            oldRefreshToken.RevokedOn = DateTime.UtcNow;
+
+           
+            await userManager.UpdateAsync(user);
+
+
+            return true;
 
         }
 
