@@ -40,6 +40,10 @@ builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT"));
 builder.Services.AddJWTConfigurationService(builder.Configuration);
 
 
+// mailSettings
+builder.Services.AddEmailSettingsService(builder.Configuration);
+
+
 
 #endregion
 

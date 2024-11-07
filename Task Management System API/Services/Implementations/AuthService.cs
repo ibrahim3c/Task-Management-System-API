@@ -311,9 +311,6 @@ namespace Task_Management_System_API.Services.Implementations
                 Token = new JwtSecurityTokenHandler().WriteToken(jwtToken)
             };
 
-
-
-
         }
 
         public async Task<bool> RevokeTokenAsync(string refreshToken)
