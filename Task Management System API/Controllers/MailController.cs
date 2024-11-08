@@ -30,15 +30,30 @@ namespace Task_Management_System_API.Controllers
         }
 
 
+       
 
-        [HttpPost("Send")]
+        [HttpPost("SendBySendGrid")]
         public async Task<IActionResult> SendMailBySendGridAsync([FromForm] MailRequestDTO mailRequest)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            try
+            {
 
-            await mailService.SendMailBySendGridAsync(mailRequest);
-            return Ok("Email has been sent successfully.");
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+
+                await mailService.SendMailBySendGridAsync(mailRequest);
+                return Ok("Email has been sent successfully.");
+
+            }
+            catch ()
+            {
+
+            }
+
+
+
+
         }
     }
 }

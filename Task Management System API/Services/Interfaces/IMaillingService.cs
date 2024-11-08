@@ -6,5 +6,6 @@ namespace Task_Management_System_API.Services.Interfaces
     {
         Task SendMailAsync(string mailTo, string subject, string body, IList<IFormFile> files = null);
         Task SendMailBySendGridAsync(MailRequestDTO mailRequest);
+        Task SendMailBySendGridAsync(string mailTo, string subject, string body, IList<IFormFile> files = null);
     }
 }

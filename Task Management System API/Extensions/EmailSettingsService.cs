@@ -6,7 +6,7 @@ namespace Task_Management_System_API.Extensions
     {
         public static IServiceCollection AddEmailSettingsService(this IServiceCollection services,IConfiguration configuration) {
 
-            services.Configure<MailSettings>(configuration.GetSection("FakeMailSettings"));
+            services.Configure<MaillingSettings>(configuration.GetSection("FakeMailSettings"));
 
             //sendGrid
             services.Configure<SendGridSettings>(configuration.GetSection("SendGridSettings"));

@@ -63,6 +63,7 @@ namespace Task_Management_System_API.Services.Implementations
             smtp.Disconnect(true);
         }
 
+        // it works :)
         // using sendGrid
         public async Task SendMailBySendGridAsync(MailRequestDTO mailRequest)
         {
@@ -90,9 +91,38 @@ namespace Task_Management_System_API.Services.Implementations
 
             if (!response.IsSuccessStatusCode)
             {
-                throw new System.Exception($"Failed to send email: {response.StatusCode}");
+                throw new Exception($"Failed to send email: {response.StatusCode}");
             }
 
+        }
+        public async Task SendMailBySendGridAsync(string mailTo, string subject, string body, IList<IFormFile> files = null)
+        {
+            var client = new SendGridClient(sendGridSettigns.CurrentValue.ApiKey);
+            var from = new EmailAddress(sendGridSettigns.CurrentValue.SenderMail, sendGridSettigns.CurrentValue.SenderName);
+            var to = new EmailAddress(mailTo);
+
+            var msg = MailHelper.CreateSingleEmail(from, to, subject, body, body);
+
+            // Attach files if any
+            if (files != null && files.Count > 0)
+            {
+                foreach (var file in files)
+                {
+                    using var ms = new MemoryStream();
+                    await file.CopyToAsync(ms);
+                    var fileBytes = ms.ToArray();
+                    msg.AddAttachment(file.FileName, Convert.ToBase64String(fileBytes));
+                }
+            }
+
+            // Send email and handle response
+            var response = await client.SendEmailAsync(msg);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await response.Body.ReadAsStringAsync();
+                throw new Exception($"Failed to send email: {response.StatusCode} - {errorMessage}");
+            }
         }
     }
 }
