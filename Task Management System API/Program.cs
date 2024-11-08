@@ -33,7 +33,9 @@ builder.Services.AddCorsService();
 builder.Services.AddAutoMapperService();
 
 // identity ===> i spend one day to find out that you are the problem => it should be above JWTConfigs :(
-builder.Services.AddIdentity<AppUser, AppRole>().AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();
+builder.Services.AddIdentity<AppUser, AppRole>(
+    options=>options.SignIn.RequireConfirmedEmail=true
+    ).AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();
 
 // JWTconfiguration
 builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT"));

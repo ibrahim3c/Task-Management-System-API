@@ -7,13 +7,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using System;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Task_Management_System_API.Helpers;
 using Task_Management_System_API.Services.Interfaces;
+using static Org.BouncyCastle.Crypto.Engines.SM2Engine;
 
 namespace Task_Management_System_API.Services.Implementations
 {
@@ -24,18 +25,21 @@ namespace Task_Management_System_API.Services.Implementations
         private readonly IMapper mapper;
         private readonly IOptionsMonitor<JWT> JWTConfigs;
         private readonly IUnitOfWork unitOfWork;
+        private readonly IMaillingService maillingService;
 
         public AuthService(UserManager<AppUser> userManager,
             RoleManager<AppRole> roleManager,
             IMapper mapper,
             IOptionsMonitor<JWT> JWTConfigs,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            IMaillingService maillingService)
         {
             this.userManager = userManager;
             this.roleManager = roleManager;
             this.mapper = mapper;
             this.JWTConfigs = JWTConfigs;
             this.unitOfWork = unitOfWork;
+            this.maillingService = maillingService;
         }
 
         // JWT Token
@@ -338,7 +342,235 @@ namespace Task_Management_System_API.Services.Implementations
         }
 
 
+
+        // additional
+
+        // email verification
+        public async Task<ResultDTO<string>> RegisterWithEmailVerification(UserRegisterDTO userRegisterDTO,string scheme,string host)
+        {
+
+            if (await userManager.FindByEmailAsync(userRegisterDTO.Email) is not null)
+                return new ResultDTO<string>()
+                {
+                    Success = false,
+                    Messages = new List<string> { "Email is already Registered!" }
+                };
+            if (await userManager.FindByNameAsync(userRegisterDTO.UserName) is not null)
+                return new ResultDTO<string>()
+                {
+                    Success = false,
+                    Messages = new List<string> { "User Name is already Registered!" }
+                };
+
+            // create user
+            var user = mapper.Map<AppUser>(userRegisterDTO);
+            user.EmailConfirmed = false;
+
+            var result = await userManager.CreateAsync(user, userRegisterDTO.Password);
+            if (!result.Succeeded)
+                return new ResultDTO<string>()
+                {
+                    Success = false,
+                    Messages = result.Errors.Select(e => e.Description).ToList()
+                };
+
+            // add role to user
+            await userManager.AddToRoleAsync(user, Roles.UserRole);
+
+
+            // send confirmation token to user 
+            await SendConfirmationEmailAsync(user,scheme, host);
+          
+            return new ResultDTO<string>()
+            {
+                Success = true,
+                Messages = ["Please verify your email, through the verification email we have just send"]
+            };
+
+        }
+
+        public async Task<ResultDTO<string>> VerifyEmailAsync(string userId,string code)
+        {
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(code))
+            {
+                return  ResultDTO<string>.Failure(["UserId and code are required"]);
+            }
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return ResultDTO<string>.Failure(["User not found"]);
+            }
+
+            // Decode the token before using it
+            var decodedCode = Uri.UnescapeDataString(code);
+
+            var result = await userManager.ConfirmEmailAsync(user, decodedCode);
+            if (result.Succeeded)
+            {
+                return ResultDTO<string>.SuccessFully(["Email confirmed successfully"],null);
+            }
+            else
+            {
+                return ResultDTO<string>.Failure(["Email confirmation failed"]);
+            }
+        }
+
+        public async Task<AuthResultDTOForRefresh> LoginWithEmailVerificationAsync(UserLoginDTO UserDTO)
+        {
+            //var user = await userManager.FindByEmailAsync(UserDTO.Email);
+
+            // to include the RefreshTokens 
+            var user = await userManager.Users
+                                    .Include(u => u.RefreshTokens)
+                                    .FirstOrDefaultAsync(u => u.Email == UserDTO.Email);
+            if (user == null)
+                return new AuthResultDTOForRefresh
+                {
+                    Success = false,
+                    Messages = new List<string> { "Email or Password is incorrect" }
+                };
+
+            // verify if he confirmed
+            if (!user.EmailConfirmed)
+            {
+               return  new AuthResultDTOForRefresh {
+                    Success = false,
+                    Messages = new List<string> { "Email needs to be Confirmed" }
+                };
+            }
+
+            var result = await userManager.CheckPasswordAsync(user, UserDTO.Password);
+            if (!result)
+                return new AuthResultDTOForRefresh
+                {
+                    Success = false,
+                    Messages = new List<string> { "Email or Password is incorrect" }
+                };
+
+            var token = await GenerateJwtTokenAsync(user);
+
+
+
+            var authResult = new AuthResultDTOForRefresh()
+            {
+                Success = true,
+                Token = new JwtSecurityTokenHandler().WriteToken(token),
+            };
+
+            // check if user has already active refresh token 
+            // so no need to give him new refresh token
+            if (user.RefreshTokens.Any(r => r.IsActive))
+            {
+                // TODO: check this 
+                var UserRefreshToken = user.RefreshTokens.FirstOrDefault(r => r.IsActive);
+                authResult.RefreshToken = UserRefreshToken.Token;
+                authResult.RefreshTokenExpiresOn = UserRefreshToken.ExpiresOn;
+            }
+
+            // if he does not
+            // generate new refreshToken
+            else
+            {
+                var refreshToken = GenereteRefreshToken();
+                authResult.RefreshToken = refreshToken.Token;
+                authResult.RefreshTokenExpiresOn = refreshToken.ExpiresOn;
+
+                // then save it in db
+                user.RefreshTokens.Add(refreshToken);
+                await userManager.UpdateAsync(user);
+            }
+
+            return authResult;
+
+
+        }
+        private async Task SendConfirmationEmailAsync(AppUser user, string scheme, string host)
+        {
+            var code = await userManager.GenerateEmailConfirmationTokenAsync(user);
+
+            // Generate the URL =>https://localhost:8080/api/Accounts/VerifyEmail?userId=dkl&code=ioerw
+            var callbackUrl = $"{scheme}://{host}/api/Accounts/VerifyEmail?userId={user.Id}&code={Uri.EscapeDataString(code)}";
+
+            var emailBody = $"Please confirm your account by clicking this link: <a href='{callbackUrl}'>Confirm Email</a>";
+
+            // send Email
+            await maillingService.SendMailBySendGridAsync(user.Email, "Email Confirmation", emailBody);
+
+           
+        }
+
+       
+        //forgot password
+        public async Task<ResultDTO<string>> ForgotPasswordAsync(ForgotPasswordDTO forgotPasswordDTO, string scheme, string host)
+        {
+            var user = await userManager.FindByEmailAsync(forgotPasswordDTO.Email);
+            if (user == null)
+                return new ResultDTO<string>
+                {
+                    Success = false,
+                    Messages = new List<string> { "Email is incorrect" }
+                };
+
+            // generete token and  send it to user
+            await SendPasswordResetEmailAsync(user, scheme, host);
+
+            return new ResultDTO<string>
+            {
+                Success = true,
+                Messages = new List<string> { "Please go to your email and  reset your password" }
+            };
+
+            // after that user click on link and go to frontend page that
+            //1-capture userId, code
+            //2-make form for user to reset new password
+            // then user send data to reset password endpoint
+
+
+        }
+        private async Task SendPasswordResetEmailAsync(AppUser user, string scheme, string host)
+        {
+            // Generate the password reset token
+            var code = await userManager.GeneratePasswordResetTokenAsync(user);
+
+            // Construct the reset link
+            var callbackUrl = $"{scheme}://{host}/api/Accounts/ResetPassword?userId={user.Id}&code={Uri.EscapeDataString(code)}";
+            // Send email with the reset link
+            await maillingService.SendMailBySendGridAsync(user.Email, "Reset Your Password",
+                $"Please reset your password by clicking this link: <a href='{callbackUrl}'>Reset Password</a>");
+        }
+
+
+        public async Task<ResultDTO<string>>ResetPasswordAsync(ResetPasswordDto resetPasswordDto)
+        {
+            if (string.IsNullOrWhiteSpace(resetPasswordDto.UserId) || string.IsNullOrWhiteSpace(resetPasswordDto.code))
+            {
+                return ResultDTO<string>.Failure(["UserId and code are required"]);
+            }
+
+            var user = await userManager.FindByIdAsync(resetPasswordDto.UserId);
+            if (user == null)
+            {
+                return ResultDTO<string>.Failure(["User not found"]);
+            }
+
+            // Decode the token before using it
+            var decodedCode = Uri.UnescapeDataString(resetPasswordDto.code);
+
+            var result = await userManager.ResetPasswordAsync(user, decodedCode,resetPasswordDto.NewPassword);
+            if (result.Succeeded)
+            {
+                return ResultDTO<string>.SuccessFully(["Password Reset successfully"], null);
+            }
+            else
+            {
+                return ResultDTO<string>.Failure(["Error resetting password."]);
+            }
+        }
+
+
+
     }
 
-   
+
 }
