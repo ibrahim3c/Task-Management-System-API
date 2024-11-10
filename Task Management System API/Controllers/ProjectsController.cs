@@ -14,10 +14,12 @@ namespace Task_Management_System_API.Controllers
     public class ProjectsController : ControllerBase
     {
         private readonly IProjectService projectService;
+        private readonly ILogger<ProjectsController> logger;
 
-        public ProjectsController(IProjectService projectService)
+        public ProjectsController(IProjectService projectService,ILogger<ProjectsController> Logger)
         {
             this.projectService = projectService;
+            logger = Logger;
         }
 
         [HttpGet()]

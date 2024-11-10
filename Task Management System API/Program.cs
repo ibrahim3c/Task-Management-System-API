@@ -3,8 +3,10 @@ using Core.Models;
 using DAL.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using Task_Management_System_API.Extensions;
 using Task_Management_System_API.Helpers;
+using Task_Management_System_API.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,9 +35,7 @@ builder.Services.AddCorsService();
 builder.Services.AddAutoMapperService();
 
 // identity ===> i spend one day to find out that you are the problem => it should be above JWTConfigs :(
-builder.Services.AddIdentity<AppUser, AppRole>(
-    options=>options.SignIn.RequireConfirmedEmail=true
-    ).AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();
+builder.Services.AddIdentity<AppUser, AppRole>().AddEntityFrameworkStores<AppDbContext>().AddDefaultTokenProviders();
 
 // JWTconfiguration
 builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT"));
@@ -45,7 +45,12 @@ builder.Services.AddJWTConfigurationService(builder.Configuration);
 // mailSettings
 builder.Services.AddEmailSettingsService(builder.Configuration);
 
+// logger=>serilog
+var logger = new LoggerConfiguration().ReadFrom.Configuration(builder.Configuration).CreateLogger();
+builder.Logging.AddSerilog(logger);
 
+// custom middleware to log request and response
+//builder.Services.AddSingleton<RequestResponseLoggingMiddleware>();
 
 #endregion
 
@@ -62,6 +67,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseStaticFiles();
 app.UseHttpsRedirection();
+// custom middleware to log request and response
+//app.UseMiddleware<RequestResponseLoggingMiddleware>();
 
 app.UseCors(GeneralConsts.CorsPolicyName);
 app.UseAuthentication(); // Ensures the user is authenticated
