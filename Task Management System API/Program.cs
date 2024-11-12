@@ -52,6 +52,9 @@ builder.Logging.AddSerilog(logger);
 // custom middleware to log request and response
 //builder.Services.AddSingleton<RequestResponseLoggingMiddleware>();
 
+// twilio for send SMS
+builder.Services.AddTwilioService(builder.Configuration);
+
 #endregion
 
 

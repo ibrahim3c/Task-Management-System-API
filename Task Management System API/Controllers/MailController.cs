@@ -8,7 +8,7 @@ namespace Task_Management_System_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[Authorize(Roles =Roles.AdminRole)]
+    [Authorize(Roles = Roles.AdminRole)]
     public class MailController:ControllerBase
     {
         private readonly IMaillingService mailService;
