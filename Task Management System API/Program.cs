@@ -1,6 +1,7 @@
 using Core.Constants;
 using Core.Models;
 using DAL.Data;
+using DAL.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -24,6 +25,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlServer(connectionString);
 });
+
+// Add configuration from the secret.json file
+builder.Configuration.AddJsonFile("Secret.json", optional: false, reloadOnChange: true);
 
 //dependency Injection
 builder.Services.AddDependencyInjectionService();
@@ -54,6 +58,12 @@ builder.Logging.AddSerilog(logger);
 
 // twilio for send SMS
 builder.Services.AddTwilioService(builder.Configuration);
+
+// api versioning
+builder.Services.AddApiVersioningConfigs();
+
+//AdminUser
+builder.Services.Configure<AdminUser>(builder.Configuration.GetSection("AdminUser"));
 
 #endregion
 

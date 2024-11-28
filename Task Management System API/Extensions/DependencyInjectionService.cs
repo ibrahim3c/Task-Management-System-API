@@ -1,6 +1,7 @@
 ﻿using Core.IRepositoreis.UOW;
 using Core.Services.Implementations;
 using Core.Services.Interfaces;
+using DAL.DbInitializer;
 using DAL.Repositories.UOW;
 using MyShop.Services.Implementations;
 using MyShop.Services.Interfaces;
@@ -23,6 +24,7 @@ namespace Task_Management_System_API.Extensions
                 .AddScoped<IRolesService, RoleService>()
                 .AddScoped<IMaillingService, MaillingService>()
                 .AddScoped<ISMSService, SMSService>()
+                .AddScoped<IDbInitializer, DbInitializer>()
                 ;
 
            return services;

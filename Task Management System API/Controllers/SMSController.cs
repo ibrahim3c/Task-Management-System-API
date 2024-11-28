@@ -1,4 +1,6 @@
-﻿using Core.DTOS;
+﻿using Core.Constants;
+using Core.DTOS;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Task_Management_System_API.Services.Interfaces;
 
@@ -6,6 +8,7 @@ namespace Task_Management_System_API.Controllers
 {
     [ApiController]
     [Route("api/[Controller]")]
+    [Authorize(Roles =Roles.AdminRole)]
     public class SMSController:ControllerBase
     {
         private readonly ISMSService sMSService;
